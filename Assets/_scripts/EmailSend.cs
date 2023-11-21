@@ -5,52 +5,80 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
 using static AzureOpenAIController;
+using System.IO;
+using static EmailSend;
 
 public class EmailSend : MonoBehaviour
 {
 
     private string action_id;
     public string apiKey;
-    private EmailData emailData;
-    private bool send_email;
+    private bool execute;
+    public string filestream { get; set; }
+    public string threadId { get; set; }
+
+    private string replyWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3krc4cs/";
+    private string sendWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3k9yc17/";
+
+    private string webhookURL = "";
+    private RequestBody requestBody;
 
     [System.Serializable]
-    public class EmailData
+    public class RequestBody
     {
-        public string instructions;
+        public string file_stream;
+        public string to_email;
+        public string cc_email;
+        public string subject;
+        public string body;
+        public string thread_id;
     }
+
 
     void Start()
     {
-        emailData = new EmailData();
-        OnEmailSend += PrepareEmail;
+        filestream = "";
+        threadId = "";
+        requestBody = new RequestBody();
+        OnEmailTask += PrepareEmail;
         StartCoroutine(GetZapierAIActionId());
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (send_email)
+        if (execute)
         {
             StartCoroutine(PostEmail());
-            send_email = false;
+            execute = false;
         }
 
-      /*  if (Input.GetKeyDown(KeyCode.Space))
-        {
+        /*  if (Input.GetKeyDown(KeyCode.Space))
+          {
 
-            string instructions = $"'email':lym6953597@163.com,'subject':周六来加班,'body':Vincent你在哪里？周六项目需要加班";
-            emailData.instructions = instructions;
-            StartCoroutine(PostEmail());
-        }*/
+              string instructions = $"'email':lym6953597@163.com,'subject':周六来加班,'body':Vincent你在哪里？周六项目需要加班";
+              emailData.instructions = instructions;
+              StartCoroutine(PostEmail());
+          }*/
     }
 
     public void PrepareEmail(FunctionCallResponse obj)
     {
-        string instructions = $"'email':{obj.arguments.email},'subject':{obj.arguments.subject},'body':{obj.arguments.body}";
-        emailData.instructions = instructions;
-        send_email = true;
+        if (obj.arguments.tasktype == "SEND_EMAIL")
+        {
+            webhookURL = sendWebhookURL;
+        }
+        else if (obj.arguments.tasktype == "REPLY_EMAIL")
+        {
+            webhookURL = replyWebhookURL;
+        }
+        requestBody.to_email = obj.arguments.to_email;
+        requestBody.subject = obj.arguments.subject;
+        requestBody.body = obj.arguments.body;
+        requestBody.thread_id = threadId;
+        requestBody.file_stream = "";
+        execute = true;
 
     }
 
@@ -91,36 +119,23 @@ public class EmailSend : MonoBehaviour
 
     IEnumerator PostEmail()
     {
-        string url = $"https://actions.zapier.com/api/v1/exposed/{action_id}/execute/";
+        string json = JsonUtility.ToJson(requestBody);
 
-        /*string requestBody = "{\"instructions\": \"'email':574651401@qq.com, 'subject':from postman , 'body':do you have time\"}";*/
-        string requestBody = JsonUtility.ToJson(emailData);
-        // 创建UnityWebRequest对象
-        UnityWebRequest webRequest = new UnityWebRequest(url, "POST");
+        UnityWebRequest request = new UnityWebRequest(webhookURL, "POST");
+        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
+        request.uploadHandler = (UploadHandler)new UploadHandlerRaw(jsonToSend);
+        request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
 
-        // 将json字符串转化成byte数组，并且设置到webRequest的uploadHandler中
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(requestBody);
-        webRequest.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+        yield return request.SendWebRequest();
 
-        // 设置请求的header
-        webRequest.SetRequestHeader("x-api-key", apiKey);
-        webRequest.SetRequestHeader("Content-Type", "application/json");
-
-        // 这里设置downloadHandler，用于处理响应内容（即使我们不打算读取内容）
-        webRequest.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
-
-        // 发送请求并且等待请求结束
-        yield return webRequest.SendWebRequest();
-
-        // 检查请求是否有错误
-        if (webRequest.result != UnityWebRequest.Result.Success)
+        if (request.isNetworkError || request.isHttpError)
         {
-            Debug.LogError("Error: " + webRequest.error);
+            Debug.LogError(request.error);
         }
         else
         {
-            // 请求成功，可以用webRequest.downloadHandler.text获取响应
-            Debug.Log("Response: " + webRequest.downloadHandler.text);
+            Debug.Log("Response: " + request.downloadHandler.text);
         }
     }
 

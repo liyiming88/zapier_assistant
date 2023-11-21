@@ -3,6 +3,7 @@ using Azure.AI.OpenAI;
 using System;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class AzureOpenAIController : MonoBehaviour
@@ -16,7 +17,7 @@ public class AzureOpenAIController : MonoBehaviour
     private IList<ChatMessage> messages;
 
     public static Action<string> OnGPTContentRecieve;
-    public static Action<FunctionCallResponse> OnEmailSend;
+    public static Action<FunctionCallResponse> OnEmailTask;
 
     public class FunctionCallResponse
     {
@@ -26,10 +27,11 @@ public class AzureOpenAIController : MonoBehaviour
 
     public class Arguments
     {
-        public string name;
-        public string email;
+        public string recipient;
+        public string to_email;
         public string subject;
         public string body;
+        public string tasktype;
     }
 
     // Start is called before the first frame update
@@ -38,26 +40,28 @@ public class AzureOpenAIController : MonoBehaviour
         // Create chatgpt client
         client = new(new Uri(endpoint), new AzureKeyCredential(key));
         // Build request
-        messages = new List<ChatMessage> { new ChatMessage(ChatRole.System, @"你是一个非常有用的工作助理，你帮助用户读取邮箱信件，
--你的任务1，当你收到这个字符串时，先通知用户你收到一封来自{sender}的邮件，询问是否播报。
-当用户允许播报后，你进行播报。我给你举一个例子。
-<user>:{'sender': '李逸明','subject': '实验室参观准备工作','content': 'Patrick，你好，周五下午我们要进行实验室参观的排练，请保证人员场地物料完备，谢谢。Thanks，李逸明','id': 'kjlsjfsiljakdflajfljekl','new_data': true}
-<you>: Hi Patrick, 你有一封李逸明发来的新邮件哟，需要我为你播报吗
-<user>: 好的，请播报
-<you>: 这封邮件的标题是：实验室参观准备工作。内容是：Patrick，你好，周五下午我们要进行实验室参观的排练，请保证人员场地物料完备，谢谢。Thanks，李逸明。
+        messages = new List<ChatMessage> { new ChatMessage(ChatRole.System, @"You are a very useful work assistant. You help users read email messages and Yiming is your user.
+- Task 1. When you receive a string, you first notify your user that they have received an email from {sender}, do not tell them subject and content, and ask if they would like it to be read aloud. Once the user allows it, 
+you proceed to read it. Let me give you an example.
+<user>:{'sender': 'Patrick','subject': 'Lab Tour Prepare','content': 'Hi Yiming, tomorrow you are going to host Lab tour, good luck. Patrick','id': 'ididididi','new_data': true, 'thread_id': '154631654132131'}
+<you>: Hi Yiming, you got a new e-mail from {sender}, shall I read it for you?
+<user>: Yes, please
+<you>: The subject is Lab Tour Prepare, the sender is Patrick, the content is Hi Yiming, tomorrow you are going to host Lab tour, good luck. Patrick.
+After reading, you have to ask user if he wants you to assist to reply this email.
 
-任务2，当用户需要你为他发邮件时，你需要确认你保证充分知道 收件人名称，收件人邮箱, 主题, 内容 后才可以进行邮件发送。
-已知邮件名称和邮件地址的对应关系是
+-Task 2. When a user needs you to reply to an email, understand the content the user wants to reply to before sending the email.
+
+-Task 3. When a user asks you to send a new email on their behalf, you need to confirm that you have sufficient information about the recipient's name, recipient's email, subject, and content before proceeding with the email sending.
+
+Contacts
     ---
-        Vincent - lym6953597@163.com
-        李逸明 - 574651041@qq.com
-        John - patrickli789asd@gmail.com
+        Patrick Li - patrickli123asd@gmail.com
+        John - 574651401@qq.com
     ---
 
 ") };
 
-
-        /*   UserInput("我从小有一个当演员的梦想，但现在的我怕是很难实现这个梦想了。你能帮我实现演员梦吗，哪怕生成几个剧照或一段简短的视频都可以满足我。");*/
+    
     }
 
     private async void CallGPT()
@@ -67,24 +71,28 @@ public class AzureOpenAIController : MonoBehaviour
         {
             ""type"": ""object"",
             ""properties"": {
-                ""name"": {
+                ""recipient"": {
                     ""type"": ""string"",
-                    ""description"": ""邮件中的收件人名称""
+                    ""description"": ""recipient""
                 },
-                ""email"": {
+                ""to_email"": {
                     ""type"": ""string"",
-                    ""description"": ""邮件中的收件人邮箱""
+                    ""description"": ""recipient email address""
                 },
                 ""subject"": {
                     ""type"": ""string"",
-                    ""description"": ""邮件中的主题""
+                    ""description"": ""subject""
                 },
                 ""body"": {
                     ""type"": ""string"",
-                    ""description"": ""邮件中的内容""
+                    ""description"": ""body""
+                },
+                ""tasktype"": {
+                    ""type"": ""string"",
+                    ""description"": ""REPLY_EMAIL or SEND_EMAIL""
                 }
             },
-            ""required"": [""name"",""email"",""subject"",""body""]
+            ""required"": [""recipient"",""to_email"",""subject"",""body"",""tasktype""]
         }";
 
         var chatCompletionsOptions = new ChatCompletionsOptions(messages)
@@ -93,16 +101,16 @@ public class AzureOpenAIController : MonoBehaviour
             MaxTokens = 4096,
             Functions =
             {
-              /*  new FunctionDefinition
+                /*new FunctionDefinition
                 {
-                    Name = "change_dialect",
+                    Name = "reply email",
                     Description = "按照用户的要求选择语言，比如东北话",
-                    Parameters = new BinaryData(lang_param)
+                    Parameters = new BinaryData(reply_param)
                 },*/
                 new FunctionDefinition
                 {
-                    Name = "send_email",
-                    Description = "发邮件",
+                    Name = "email_task",
+                    Description = "reply or send a email",
                     Parameters = new BinaryData(reply_param)
                 }
             }
@@ -119,31 +127,21 @@ public class AzureOpenAIController : MonoBehaviour
             string res_str = response.Value.Choices[0].Message.FunctionCall.Arguments;
             Arguments argObj = JsonUtility.FromJson<Arguments>(res_str);
             string func_name = response.Value.Choices[0].Message.FunctionCall.Name;
-            string p1 = argObj.name;
-            string p2 = argObj.email;
-            string p3 = argObj.subject;
-            string p4 = argObj.body;
+            string recipient = argObj.recipient;
+            string to_email = argObj.to_email;
+            string subject = argObj.subject;
+            string body = argObj.body;
+            string tasktype = argObj.tasktype;
             Debug.Log("func_name: " + func_name);
-            Debug.Log("p1: " + p1);
-            Debug.Log("p2: " + p2);
-            Debug.Log("p3: " + p3);
-            Debug.Log("p4: " + p4);
+            Debug.Log("recipient: " + recipient);
+            Debug.Log("to_email: " + to_email);
+            Debug.Log("subject: " + subject);
+            Debug.Log("body: " + body);
+            Debug.Log("tasktype: " + tasktype);
             FunctionCallResponse funcObj = new FunctionCallResponse();
             funcObj.name = response.Value.Choices[0].Message.FunctionCall.Name;
             funcObj.arguments = argObj;
-            /*            AddCharacterResToMessage("");*/
-            switch (func_name)
-            {
-                /*case "change_dialect":
-                    OnDialectFuncRecieve?.Invoke(funcObj);
-                    break;
-                case "change_scene":
-                    OnBgFuncRecieve?.Invoke(funcObj);
-                    break;*/
-                case "send_email":
-                    OnEmailSend?.Invoke(funcObj);
-                    break;
-            }
+            OnEmailTask?.Invoke(funcObj);
         }
     }
 
