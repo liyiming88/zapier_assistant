@@ -6,6 +6,7 @@ using static AzureOpenAIController;
 using static LanguageSelect;
 using System;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 
 public class SpeechService : MonoBehaviour
 {
@@ -26,6 +27,7 @@ public class SpeechService : MonoBehaviour
     private Quaternion startRotation;
     private bool recongnizable = true;
     private bool isSilent;
+    public bool inputMode;
     private bool openMicAftersynthesis = true;
     public void Start()
     {
@@ -39,16 +41,16 @@ public class SpeechService : MonoBehaviour
         // 'zh-CN': Chinese; 'en-US': English
         //diction:'zh-CN-XiaoxiaoNeural' 'en-US-AriaNeural'
         // here is Azure speech language list: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts
-        /*config.SpeechSynthesisLanguage = "zh-CN-liaoning";
+        config.SpeechSynthesisLanguage = "zh-CN-liaoning";
         config.SpeechSynthesisVoiceName = "zh-CN-liaoning-YunbiaoNeural";
-        config.SpeechRecognitionLanguage = "zh-CN";*/
-        config.SpeechSynthesisLanguage = "en-US";
+        config.SpeechRecognitionLanguage = "zh-CN";
+        /*config.SpeechSynthesisLanguage = "en-US";
         config.SpeechSynthesisVoiceName = "en-US-JennyMultilingualNeural";
-        config.SpeechRecognitionLanguage = "en-US";
+        config.SpeechRecognitionLanguage = "en-US";*/
         // Create speech recongnizer
         recognizer = new SpeechRecognizer(config);
         // subscribution: callback RecognizedHandler() when recognizer start to recognize
-        /*recognizer.Recognized += RecognizedHandler;*/
+        recognizer.Recognized += RecognizedHandler;
         // subscribution: callback StartToThink() when recognizer start to process recognizing
         recognizer.Recognizing += AvatarAnimite;
 
@@ -62,7 +64,6 @@ public class SpeechService : MonoBehaviour
         string[] aaa = Microphone.devices;
         OpenMic();
         OnGPTContentRecieve += SynthesizeAudioAsync;
-
     }
 
     public async void OpenMic()
@@ -122,6 +123,16 @@ public class SpeechService : MonoBehaviour
 
     void Update()
     {
+        if (!inputMode) {
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                ManualStop();
+            }
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                ManualStart();
+            }
+        }
         if (talkState)
         {
             animator.SetTrigger("talk");
@@ -150,6 +161,20 @@ public class SpeechService : MonoBehaviour
             // Todo, set some bool flag states
 
         }
+    }
+
+    public async void ManualStop()
+    {
+        Debug.Log("----------------stop----------------");
+        // this will start the listening when you click the button, if it's already off
+        await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
+    }
+
+    public async void ManualStart()
+    {
+        Debug.Log("----------------start----------------");
+        // this will start the listening when you click the button, if it's already off
+        await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
     }
 
     public void ToggleMic(bool state)
@@ -212,4 +237,5 @@ public class SpeechService : MonoBehaviour
         killed = true;
         KillRecord();
     }
+
 }

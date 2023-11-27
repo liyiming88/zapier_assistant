@@ -10,12 +10,12 @@ using static EmailSend;
 
 public class EmailSend : MonoBehaviour
 {
-
-    private string action_id;
     public string apiKey;
     private bool execute;
     public string filestream { get; set; }
     public string threadId { get; set; }
+
+    public SpeechController speechController;
 
     private string replyWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3krc4cs/";
     private string sendWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3k9yc17/";
@@ -41,8 +41,6 @@ public class EmailSend : MonoBehaviour
         threadId = "";
         requestBody = new RequestBody();
         OnEmailTask += PrepareEmail;
-        StartCoroutine(GetZapierAIActionId());
-
     }
 
     // Update is called once per frame
@@ -65,62 +63,27 @@ public class EmailSend : MonoBehaviour
 
     public void PrepareEmail(FunctionCallResponse obj)
     {
-        if (obj.arguments.tasktype == "SEND_EMAIL")
+        if (obj.arguments.p5 == "SEND_EMAIL")
         {
             webhookURL = sendWebhookURL;
         }
-        else if (obj.arguments.tasktype == "REPLY_EMAIL")
+        else if (obj.arguments.p5 == "REPLY_EMAIL")
         {
             webhookURL = replyWebhookURL;
         }
-        requestBody.to_email = obj.arguments.to_email;
-        requestBody.subject = obj.arguments.subject;
-        requestBody.body = obj.arguments.body;
+        requestBody.to_email = obj.arguments.p2;
+        requestBody.subject = obj.arguments.p3;
+        requestBody.body = obj.arguments.p4;
         requestBody.thread_id = threadId;
-        requestBody.file_stream = "";
+        requestBody.file_stream = filestream;
         execute = true;
-
     }
 
-    IEnumerator GetZapierAIActionId()
-    {
-        string url = "https://actions.zapier.com/api/v1/exposed/";
-
-        UnityWebRequest webRequest = UnityWebRequest.Get(url);
-        webRequest.SetRequestHeader("x-api-key", apiKey);
-
-        yield return webRequest.SendWebRequest();
-
-        if (webRequest.result != UnityWebRequest.Result.Success)
-        {
-            Debug.Log(webRequest.error);
-        }
-        else
-        {
-            string jsonData = webRequest.downloadHandler.text;
-            JObject jsonResponse = JObject.Parse(jsonData);
-
-            JArray results = (JArray)jsonResponse["results"];
-            foreach (JToken resultToken in results)
-            {
-                JObject result = (JObject)resultToken;
-
-                string description = (string)result["description"];
-                if (description == "Microsoft Outlook: Send Email")
-                {
-                    action_id = (string)result["id"];
-                    break;
-                }
-            }
-
-            Debug.Log("id value for 'Microsoft Outlook: Send Email': " + action_id);
-        }
-    }
 
     IEnumerator PostEmail()
     {
         string json = JsonUtility.ToJson(requestBody);
-
+        Debug.Log("Payload to webhooks: "+json);
         UnityWebRequest request = new UnityWebRequest(webhookURL, "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
         request.uploadHandler = (UploadHandler)new UploadHandlerRaw(jsonToSend);
@@ -136,6 +99,7 @@ public class EmailSend : MonoBehaviour
         else
         {
             Debug.Log("Response: " + request.downloadHandler.text);
+            speechController.SynthesizeAudioAsync("Great, the e-mail has been sent");
         }
     }
 
