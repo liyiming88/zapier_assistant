@@ -19,10 +19,15 @@ public class SpeechController : MonoBehaviour
     private bool idleState;
     private bool talkState;
     private bool clearAssistantContext;
-    private string recongnizedtxt;  
+    private string recongnizedtxt;
+    private Vector3 startPosition;
+    private Quaternion startRotation;
 
     void Awake()
     {
+        // character setting;
+        startPosition = character.transform.position;
+        startRotation = character.transform.rotation;
         animator = character.GetComponent<Animator>();
         var config = SpeechConfig.FromSubscription("87df75af6be3479a80484a90b0404966", "eastus");
         config.SpeechSynthesisLanguage = "en-US";
@@ -113,6 +118,8 @@ public class SpeechController : MonoBehaviour
             user.SetActive(false);
             assistant.SetActive(true);
         }
+        character.transform.position = startPosition;
+        character.transform.rotation = startRotation;
         talkState = false;
         idleState = false;
     }

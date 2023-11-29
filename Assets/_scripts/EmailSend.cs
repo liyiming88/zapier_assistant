@@ -17,8 +17,8 @@ public class EmailSend : MonoBehaviour
 
     public SpeechController speechController;
 
-    private string replyWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3krc4cs/";
-    private string sendWebhookURL = "https://hooks.zapier.com/hooks/catch/17041246/3k9yc17/";
+    private string replyWebhookURL = "https://hooks.zapier.com/hooks/catch/17202968/3kvahw8/";
+    private string sendWebhookURL = "https://hooks.zapier.com/hooks/catch/17202968/3kvs171/";
 
     private string webhookURL = "";
     private RequestBody requestBody;

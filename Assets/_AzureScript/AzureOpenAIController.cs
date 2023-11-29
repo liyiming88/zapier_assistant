@@ -19,6 +19,7 @@ public class AzureOpenAIController : MonoBehaviour
 
     public static Action<string> OnGPTContentRecieve;
     public static Action<FunctionCallResponse> OnEmailTask;
+    public static Action OnCheckEmail;
 
     public class FunctionCallResponse
     {
@@ -40,27 +41,45 @@ public class AzureOpenAIController : MonoBehaviour
         // Create chatgpt client
         client = new(new Uri(endpoint), new AzureKeyCredential(key));
         // Build request
-        messages = new List<ChatMessage> { new ChatMessage(ChatRole.System, @"You are a very useful work assistant. You help users read email messages and Yiming is your user.
-- Task 1. When you receive a string, you first notify your user that they have received an email from {sender}, do not tell them subject and content, and ask if they would like it to be read aloud. Once the user allows it, 
+        messages = new List<ChatMessage> { new ChatMessage(ChatRole.System, @"As a professional email handling assistant, your are 'AI Assistant', you help users check and reply and send the email.
+You must follow the following rules: 
+- Rule 1: The user's name is Patrick. Please use his name when addressing him, and automatically replace [Your Name] with Patrick in the email.
+- Rule 2: Before sending or replying the email, you need to confirm with the user that the email content is correct. If the user says no, you need to ask the user to re-enter the email content. If the user says yes, you send the email.
+- Rule 3: The email you compose should be short and brief, not lengthy.
+Here are your tasks:
+- Task 1. When the user asks if you have new emails, you perform the check_email task by making a function call. When there is a new email, you will receive a JSON string containing the email information,
+you first notify your user that they have received an email from {sender}, do not tell them subject and content, and ask if they would like it to be read aloud. Once the user allows it, 
 you proceed to read it. Let me give you an example.
-<user>:{'sender': 'Patrick','subject': 'Lab Tour Prepare','content': 'Hi Yiming, tomorrow you are going to host Lab tour, good luck. Patrick','id': 'ididididi','new_data': true, 'thread_id': '154631654132131'}
-<you>: Hi Yiming, you got a new e-mail from {sender}, shall I read it for you?
+---
+<user>:{'sender': 'John','subject': 'Lab Tour Prepare','content': 'Hi Patrick, tomorrow you are going to host Lab tour, good luck. John','id': 'ididididi','new_data': true, 'thread_id': '154631654132131'}
+<you>: You have an unread e-mail from {sender}, shall I read it for you?
 <user>: Yes, please
-<you>: The subject is Lab Tour Prepare, the content is Hi Yiming, tomorrow you are going to host Lab tour, good luck. Patrick. Do you want me to assist you to reply this email?
+<you>: The subject is Lab Tour Prepare, and the content is Hi Patrick, tomorrow you are going to host Lab tour, good luck. John. Do you want me to assist you to reply this email?
+---
+If the json string you get is { 'new_data': false}, you tell the user there is no new email in user's inbox.
+-Task 2. When a user needs you to reply to an email, You generate the email content yourself and let the user review the content before sending it.Do not ask user about recipient's email and name.
 
-Tasks for you:
--Task 1. When a user needs you to reply to an email, You generate the email content yourself and let the user review the content before sending it.Do not ask user about recipient's email and name.
-
--Task 2. When a user asks you to send a new email on their behalf, you need to confirm that you have sufficient information about the recipient's name, recipient's email, subject, and content before proceeding with the email sending. When user provide the recipient's name,
-        You check the name in contacts first. If the name is not in contacts, you ask the user for the recipient's email address. If the name is in contacts, you use the related email address. 
--Task 3. Before sending the email, you need to confirm with the user that the email content is correct. If the user says no, you need to ask the user to re-enter the email content. If the user says yes, you send the email.
-Contacts
-    ---
-        Yiming - patrickli123asd@gmail.com
-        Patrick - yiming.li@fmr.com
-        Joyce - xiaoyu.sun@fmr.com
-    ---
-
+-Task 3. As a professional email handling assistant, you will draft and send emails. Follow these steps when user wishes to send an email:
+        Step1: retrieve the recipient’s email address from triple backticks. You can find the email address related to the name through the name prompted by the user.
+            ```
+            John- John886633@outlook.com
+            Joyce - xiaoyu.sun@fmr.com 
+            Yiming - yiming.li@fmr.com
+            ```
+        Step2: Assist in drafting a suitable email subject line: Suggest a concise, clear, and relevant email subject line to attract the recipient's attention and convey the main purpose of the email.
+        Step3: By analyzing the user's previous content, you can think about the most appropriate email content and draft it by your self here is an example.
+            ---
+            <User>: John is sick, I want to send him an email to John to show my care.
+            <Assitant>: Of course, I can assist you with that. Please wait a moment while I draft the email for you.
+            Email_address:574651401@qq.com
+            Subject: Wishing You a Speedy Recovery
+            Content: Hi John,
+            I hope this email finds you as well as can be expected. I heard that you're not feeling well, and I wanted to reach out and send my best wishes for a quick and full recovery. Take the time you need to rest and take care of yourself.
+            If there's anything I can do to help during this time, please don't hesitate to let me know. Sending you positive thoughts and healing vibes.
+            Take care and get well soon!
+            Best regards, 
+            Patrick
+            ---
 ") };
         /*speechController.SynthesizeAudioAsync("Hi, I'm your AI assistant, how can I help you today");*/
 
@@ -94,17 +113,28 @@ Contacts
             ""required"": [""p2"",""p3"",""p4"",""p5""]
         }";
 
-/*        string illustration_param = @"
+        string check_email_param = @"
         {
             ""type"": ""object"",
             ""properties"": {
-                ""p1"": {
+                ""p2"": {
                     ""type"": ""string"",
-                    ""description"": ""What is the main message you want to convey in the body of your draft email? Summarize in no more than 5 words.'""
+                    ""description"": ""check if there is a new email in user's emailbox""
                 }
-            },
-            ""required"": [""p1""]
-        }";*/
+            }
+        }";
+
+        /*        string illustration_param = @"
+                {
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""p1"": {
+                            ""type"": ""string"",
+                            ""description"": ""What is the main message you want to convey in the body of your draft email? Summarize in no more than 5 words.'""
+                        }
+                    },
+                    ""required"": [""p1""]
+                }";*/
 
         var chatCompletionsOptions = new ChatCompletionsOptions(messages)
         {
@@ -123,6 +153,12 @@ Contacts
                     Name = "email_task",
                     Description = "reply or send an email",
                     Parameters = new BinaryData(reply_param)
+                },
+                new FunctionDefinition
+                {
+                    Name = "check_email",
+                    Description = "check if there is a new email in user's emailbox",
+                    Parameters = new BinaryData(check_email_param)
                 }
             }
         };
@@ -151,12 +187,19 @@ Contacts
                 OnEmailTask?.Invoke(funcObj);
                 AddCharacterResToMessage("Great, the e-mail has been sent");
             }
-           /* if (funcObj.name == "summarize_the_main_message_from_email")
+
+            if (funcObj.name == "check_email")
             {
-                Debug.Log("prompt of illustration: " + argObj.p1);
-                AddCharacterResToMessage("I am generating the illustration, which usually takes more than 10 seconds. When I have generated it, I will send this email with the attachment.");
-                speechController.SynthesizeAudioAsync("I am generating the illustration, which usually takes more than 10 seconds. When I have generated it, I will send this email with the attachment.");
-            }*/
+                OnCheckEmail?.Invoke();
+                AddCharacterResToMessage("Sure, hold on, let me check for you");
+                speechController.SynthesizeAudioAsync("Sure, hold on, let me check for you");
+            }
+            /* if (funcObj.name == "summarize_the_main_message_from_email")
+             {
+                 Debug.Log("prompt of illustration: " + argObj.p1);
+                 AddCharacterResToMessage("I am generating the illustration, which usually takes more than 10 seconds. When I have generated it, I will send this email with the attachment.");
+                 speechController.SynthesizeAudioAsync("I am generating the illustration, which usually takes more than 10 seconds. When I have generated it, I will send this email with the attachment.");
+             }*/
         }
     }
 

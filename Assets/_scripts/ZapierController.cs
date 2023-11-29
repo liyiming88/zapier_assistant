@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.CognitiveServices.Speech;
+using Newtonsoft.Json.Linq;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using static AzureOpenAIController;
 
 public class GetRequestExample : MonoBehaviour
 {
@@ -9,6 +11,7 @@ public class GetRequestExample : MonoBehaviour
     public EmailSend emailSend;
     public bool localhost;
     public string host;
+    private bool isCheckEmail;
     // 假设JSON包含的字段为data，是一个布尔类型。
     public class ResponseData
     {
@@ -22,19 +25,49 @@ public class GetRequestExample : MonoBehaviour
 
     void Start()
     {
+        OnCheckEmail += CheckEmailTrigger;
         if (localhost)
         {
             host = "localhost";
         }
-        StartCoroutine(GetEmail());
         StartCoroutine(GetAttachment());
     }
 
-    IEnumerator GetEmail()
+    private void Update()
+    {
+        if (isCheckEmail)
+        {
+            StartCoroutine(CheckEmail());
+            isCheckEmail = false;
+        }
+    }
+    IEnumerator CheckEmail()
     {
         string url = host;
         Debug.Log("Polling Email");
         UnityWebRequest www = UnityWebRequest.Get(url+ "getEmail");
+
+        yield return www.SendWebRequest();
+
+        if (www.isNetworkError || www.isHttpError)
+        {
+            Debug.Log(www.error);
+            yield break;
+        }
+
+        string response = www.downloadHandler.text;
+
+        response = System.Text.Encoding.UTF8.GetString(System.Text.Encoding.Default.GetBytes(response));
+        // 处理new_data为true的情况
+        Debug.Log("Processing new data..." + response);
+        AzureOpenAIController.UserInput(response);
+    }
+
+    IEnumerator GetEmailPolling()
+    {
+        string url = host;
+        Debug.Log("Polling Email");
+        UnityWebRequest www = UnityWebRequest.Get(url + "getEmail");
 
         yield return www.SendWebRequest();
 
@@ -61,7 +94,7 @@ public class GetRequestExample : MonoBehaviour
             // 处理new_data为false的情况
             Debug.Log("Sending request again...");
             yield return new WaitForSeconds(1f); // 等待1秒后重新发送请求
-            yield return GetEmail(); // 递归调用发送请求的方法
+            yield return GetEmailPolling(); // 递归调用发送请求的方法
         }
     }
 
@@ -99,5 +132,9 @@ public class GetRequestExample : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void CheckEmailTrigger() {
+        isCheckEmail = true;
     }
 }
