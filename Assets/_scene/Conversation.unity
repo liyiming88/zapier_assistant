@@ -776,6 +776,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 479347401}
   m_CullTransparentMesh: 1
+--- !u!1 &574005784
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 574005785}
+  - component: {fileID: 574005786}
+  m_Layer: 0
+  m_Name: AgentController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &574005785
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 574005784}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.5802999, z: 8.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &574005786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 574005784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d552eaab8ed2085429ee64b02d29ea2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speechController: {fileID: 1508153175}
 --- !u!1001 &839124271
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1647,10 +1692,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   key: 0eeb5bc7c64b45e19c02d9fd2b11af6e
-  deployment_name: gpt35turbo16k
   endpoint: https://managerforum.openai.azure.com/
   inputField: {fileID: 1537513256}
   speechController: {fileID: 1508153175}
+  agentSendOrReplyEmail: {fileID: 574005786}
 --- !u!114 &1508153175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2141,3 +2186,4 @@ SceneRoots:
   - {fileID: 1192417957}
   - {fileID: 177444015}
   - {fileID: 80856403}
+  - {fileID: 574005785}

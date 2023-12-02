@@ -100,7 +100,6 @@ public class EmailSend : MonoBehaviour
         else
         {
             Debug.Log("Response: " + request.downloadHandler.text);
-            speechController.SynthesizeAudioAsync("Great, the e-mail has been sent");
         }
     }
 

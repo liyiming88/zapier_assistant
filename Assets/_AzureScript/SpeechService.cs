@@ -217,7 +217,7 @@ public class SpeechService : MonoBehaviour
 
     // text to speech
     // avatar is talking
-    public async void SynthesizeAudioAsync(string text)
+    public static async void SynthesizeAudioAsync(string text)
     {
         Debug.Log("Start text to speech, and avatar starts to speak");
         if (text.Contains("<speak"))
