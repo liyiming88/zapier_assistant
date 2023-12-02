@@ -7,10 +7,10 @@ using Newtonsoft.Json.Linq;
 using static AzureOpenAIController;
 using System.IO;
 using static EmailSend;
+using UnityEngine.Rendering;
 
 public class EmailSend : MonoBehaviour
 {
-    public string apiKey;
     private bool execute;
     public string filestream { get; set; }
     public string threadId { get; set; }
@@ -63,17 +63,18 @@ public class EmailSend : MonoBehaviour
 
     public void PrepareEmail(FunctionCallResponse obj)
     {
-        if (obj.arguments.p5 == "SEND_EMAIL")
+        Debug.Log("tasktype: " + obj.arguments.p4);
+        if (obj.arguments.p4 == "SEND_EMAIL")
         {
             webhookURL = sendWebhookURL;
         }
-        else if (obj.arguments.p5 == "REPLY_EMAIL")
+        else if (obj.arguments.p4 == "REPLY_EMAIL")
         {
             webhookURL = replyWebhookURL;
         }
-        requestBody.to_email = obj.arguments.p2;
-        requestBody.subject = obj.arguments.p3;
-        requestBody.body = obj.arguments.p4;
+        requestBody.to_email = obj.arguments.p1;
+        requestBody.subject = obj.arguments.p2;
+        requestBody.body = obj.arguments.p3;
         requestBody.thread_id = threadId;
         requestBody.file_stream = filestream;
         execute = true;

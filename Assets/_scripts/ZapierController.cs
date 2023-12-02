@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using static AzureOpenAIController;
 
-public class GetRequestExample : MonoBehaviour
+public class ZapierController : MonoBehaviour
 {
     public AzureOpenAIController AzureOpenAIController;
     public EmailSend emailSend;

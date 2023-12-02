@@ -1453,7 +1453,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a3806783423a744b8bb052cbcdc5804, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiKey: sk-ak-xdMhrvtphf8KpGgtLS41gFY6OH
   speechController: {fileID: 1508153175}
 --- !u!1 &1409554164
 GameObject:
