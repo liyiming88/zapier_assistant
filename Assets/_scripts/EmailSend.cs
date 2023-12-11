@@ -63,12 +63,12 @@ public class EmailSend : MonoBehaviour
 
     public void PrepareEmail(FunctionCallResponse obj)
     {
-        Debug.Log("tasktype: " + obj.arguments.p4);
-        if (obj.arguments.p4 == "SEND_EMAIL")
+        Debug.Log("tasktype: " + obj.arguments.p5);
+        if (obj.arguments.p5 == "SEND_EMAIL")
         {
             webhookURL = sendWebhookURL;
         }
-        else if (obj.arguments.p4 == "REPLY_EMAIL")
+        else if (obj.arguments.p5 == "REPLY_EMAIL")
         {
             webhookURL = replyWebhookURL;
         }

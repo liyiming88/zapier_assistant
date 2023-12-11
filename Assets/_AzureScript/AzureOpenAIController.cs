@@ -57,6 +57,7 @@ public class AzureOpenAIController : MonoBehaviour
         public string p2;
         public string p3;
         public string p4;
+        public string p5;
     }
 
 

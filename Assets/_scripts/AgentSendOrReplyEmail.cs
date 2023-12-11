@@ -29,7 +29,7 @@ Follow these steps when user wishes to send an email:
             ```
     Step2: Assist in drafting a suitable email subject line: Suggest a concise, clear, and relevant email subject line to attract the recipient's attention and convey the main purpose of the email.
     Step3: You will draft the content of the email which should not exceed 50 characters.
-            By analyzing the user's previous content, you can think about the most appropriate email content and draft it by yourself, and the sender part should always be 'Patrick' here is an example.
+            By analyzing the user's previous content, you can think about the most appropriate email content and draft it by yourself, and the sender part should always be 'Joyce' here is an example.
             ---
             <User>: John is sick, I want to send him an email to John to show my care.
             <Assitant>: Of course, I can assist you with that. Please wait a moment while I draft the email for you.
@@ -40,11 +40,11 @@ Follow these steps when user wishes to send an email:
             If there's anything I can do to help during this time, please don't hesitate to let me know. Sending you positive thoughts and healing vibes.
             Take care and get well soon!
             Best regards, 
-            Patrick
+            Joyce
             The above is the content I have drafted. Please confirm if any changes are needed.
             <User>: Yes, could you make it shorter?
             ---
-    Step4: If there is [Your Name] in the draft, please replace the sender from [Your Name] to Patrick.
+    Step4: If there is [Your Name] in the draft, please replace the sender from [Your Name] to Joyce.
     Step5: Before triggering the functions, ask the user if they confirm the content of the email.
 ");
 
@@ -62,14 +62,18 @@ Follow these steps when user wishes to send an email:
                 },
                 ""p3"": {
                     ""type"": ""string"",
-                    ""description"": ""body""
+                    ""description"": ""Drafted content approved by users.""
                 },
                 ""p4"": {
+                    ""type"": ""string"",
+                    ""description"": ""Drafted content not reviewed by users.""
+                },
+                ""p5"": {
                     ""type"": ""string"",
                     ""description"": ""If the user wants to reply to an email, output 'REPLY_EMAIL'. If the user wants to send an email, output 'SEND_EMAIL'.""
                 }
             },
-            ""required"": [""p1"",""p2"",""p3"",""p4""]
+            ""required"": [""p1"",""p2"",""p3"",""p4"",""p5""]
         }";
     }
 
@@ -111,7 +115,7 @@ Follow these steps when user wishes to send an email:
         if (response.Value.Choices[0].Message.FunctionCall != null)
         {
             string res_str = response.Value.Choices[0].Message.FunctionCall.Arguments;
-            AddFunResToMessage(response.Value.Choices[0].Message.FunctionCall);
+            AddCharacterResToMessage("Great, the e-mail has been sent");
             Arguments argObj = JsonUtility.FromJson<Arguments>(res_str);
             FunctionCallResponse funcObj = new FunctionCallResponse();
             funcObj.name = response.Value.Choices[0].Message.FunctionCall.Name;
