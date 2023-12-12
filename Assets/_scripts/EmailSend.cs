@@ -34,7 +34,6 @@ public class EmailSend : MonoBehaviour
         public string thread_id;
     }
 
-
     void Start()
     {
         filestream = "";
