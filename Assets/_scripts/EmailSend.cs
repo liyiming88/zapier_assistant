@@ -51,14 +51,6 @@ public class EmailSend : MonoBehaviour
             StartCoroutine(PostEmail());
             execute = false;
         }
-
-        /*  if (Input.GetKeyDown(KeyCode.Space))
-          {
-
-              string instructions = $"'email':lym6953597@163.com,'subject':周六来加班,'body':Vincent你在哪里？周六项目需要加班";
-              emailData.instructions = instructions;
-              StartCoroutine(PostEmail());
-          }*/
     }
 
     public void PrepareEmail(FunctionCallResponse obj)
